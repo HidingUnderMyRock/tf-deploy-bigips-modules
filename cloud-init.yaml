@@ -1,0 +1,71 @@
+#cloud-config
+write_files:
+  - path: /config/custom-config.sh
+    permissions: 0755
+    owner: root:root
+    content: |
+      #!/bin/bash
+
+      # Setup environmental variables
+      TEMPADMINPWD=Ch4ngeMeImmediately!
+      DOFN=f5-declarative-onboarding-1.9.0-1.noarch.rpm
+      CFOFN=f5-cloud-failover-0.9.1-1.noarch.rpm
+      DORPMURL=https://github.com/F5Networks/f5-declarative-onboarding/releases/download/v1.9.0/f5-declarative-onboarding-1.9.0-1.noarch.rpm
+      CFORPMURL=https://github.com/f5devcentral/f5-cloud-failover-extension/releases/download/v0.9.1/f5-cloud-failover-0.9.1-1.noarch.rpm
+      FILEPATH=/var/config/rest/downloads
+      CREDS=admin:$TEMPADMINPWD
+      IP=127.0.0.1
+
+      # Wait for MCPD to be up before running tmsh commands
+      source /usr/lib/bigstart/bigip-ready-functions
+      wait_bigip_ready 
+
+      # Set temp admin password and disable hostname discovery via dhcp
+      /bin/printf "\nsetting temporary admin password\n"
+      /bin/tmsh modify auth user admin password $TEMPADMINPWD
+      /bin/printf "\ndisabling DHCP hostname resolution\n"
+      /bin/tmsh modify sys management-dhcp sys-mgmt-dhcp-config request-options delete { host-name domain-name }
+      /bin/printf "\nsaving TMOS config\n"
+      /bin/tmsh save /sys config
+
+      # Download declarative onboarding RPM from GitHub
+      /bin/printf "\ndownloading declarative onboarding RPM from GitHub\n"
+      /bin/curl --silent --retry 10 --location --create-dirs --output $FILEPATH/$DOFN $DORPMURL
+      /bin/printf "\ndownloading declarative onboarding RPM from GitHub...complete\n"
+
+      # Download cloud failover RPM from GitHub
+      /bin/printf "\ndownloading cloud failover RPM from GitHub\n"
+      /bin/curl --silent --retry 10 --location --create-dirs --output $FILEPATH/$CFOFN $CFORPMURL
+      /bin/printf "\ndownloading cloud failover RPM from GitHub...complete\n"
+
+      # Install declarative onboarding RPM
+      LEN=$(/bin/wc -c $FILEPATH/$DOFN | /bin/cut -f 1 -d ' ')
+      /bin/printf "\ntransfering declarative onboarding RPM to iApp uploads\n"
+      /bin/curl --retry 10 -kvu $CREDS https://$IP/mgmt/shared/file-transfer/uploads/$DOFN -H 'Content-Type: application/octet-stream' -H "Content-Range: 0-$((LEN - 1))/$LEN" -H "Content-Length: $LEN" -H 'Connection: keep-alive' --data-binary @$FILEPATH/$DOFN
+      /bin/printf "\ntransfering declarative onboarding RPM to iApp uploads...complete\n"
+      /bin/printf "\npausing five seconds before installing DO RPM\n"
+      /bin/sleep 5
+      /bin/printf "\ninstalling declarative onboarding RPM\n"
+      DATA="{\"operation\":\"INSTALL\",\"packageFilePath\":\"$FILEPATH/$DOFN\"}"
+      /bin/curl --retry 10 -kvu $CREDS "https://$IP/mgmt/shared/iapp/package-management-tasks" -H "Origin: https://$IP" -H 'Content-Type: application/json;charset=UTF-8' --data $DATA
+      /bin/printf "\ninstalling declarative onboarding RPM...complete\n"
+
+      #Install Cloud Failover RPM
+      LEN=$(/bin/wc -c $FILEPATH/$CFOFN | /bin/cut -f 1 -d ' ')
+      /bin/printf "\ntransfering cloud failover RPM to iApp uploads\n"
+      /bin/curl --retry 10 -kvu $CREDS https://$IP/mgmt/shared/file-transfer/uploads/$CFOFN -H 'Content-Type: application/octet-stream' -H "Content-Range: 0-$((LEN - 1))/$LEN" -H "Content-Length: $LEN" -H 'Connection: keep-alive' --data-binary @$FILEPATH/$CFOFN
+      /bin/printf "\ntransfering cloud failover RPM to iApp uploads...complete\n"
+      /bin/printf "\npausing five seconds before installing CFO RPM\n"
+      /bin/sleep 5
+      /bin/printf "\ninstalling cloud failover RPM\n"
+      DATA="{\"operation\":\"INSTALL\",\"packageFilePath\":\"$FILEPATH/$CFOFN\"}"
+      /bin/curl --retry 10 -kvu $CREDS "https://$IP/mgmt/shared/iapp/package-management-tasks" -H "Origin: https://$IP" -H 'Content-Type: application/json;charset=UTF-8' --data $DATA
+      /bin/printf "\ninstalling cloud failover RPM...complete\n"
+
+      # cloud-init completed
+      /bin/printf "\n*** cloud-init completed at $(date) ***\n"
+
+runcmd:
+  # NOTE: Commands must be non-blocking so send long running commands (polling/waiting for mcpd) to the background
+  # NOTE: runcmd only runs at first boot
+  - /config/custom-config.sh &
