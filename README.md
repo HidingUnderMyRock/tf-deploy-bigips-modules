@@ -1,9 +1,13 @@
-# tf-deploy-bigips-dual-clusters
+# tf-deploy-bigips-modules
 
 ## Description
 
-This Terraform script is used to deploy two pairs of BIG-IPsn in an AWS VPC, placing each pair in a different availability zone.  In addition, the script will use cloud-init to download and install both the declarative onboarding and cloud failover frameworks.
+This Terraform module is used to deploy multiple BIG-IPs in an AWS VPC.
 
-## Variables
+The module ./modules/bigip_cluster/main.tf will create a pair of BIG-IPs, with each instance residing in the same availability zone.
 
-work in progress...nothing to see here.
+The module ./modules/bigip_standalone/main.tf will create a single BIG-IP in the designated availability zone.
+
+Variables are used within each child module to allow flexible naming, etc.  Check the README for each child module for a description of the variables.
+
+In addition, the script uses cloud-init to download and install both the [F5 Declarative Onboarding](https://clouddocs.f5.com/products/extensions/f5-declarative-onboarding/latest/) and [F5 Cloud Failover](https://clouddocs.f5networks.net/products/extensions/f5-cloud-failover/latest/) extensions on every BIG-IP instance created.
