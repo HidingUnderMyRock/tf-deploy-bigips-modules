@@ -25,6 +25,19 @@ write_files:
       /bin/tmsh modify auth user admin password $TEMPADMINPWD
       /bin/printf "\ndisabling DHCP hostname resolution\n"
       /bin/tmsh modify sys management-dhcp sys-mgmt-dhcp-config request-options delete { host-name domain-name }
+
+      # Install device certificates and restart associated services
+      /bin/printf "\ninstalling CA cert to Device Trust Certificates\n"
+      /bin/cat /config/ca_certificate.crt > /config/big3d/client.crt
+      /bin/printf "\ninstalling CA cert to GSLB Trusted Server Certificates\n"
+      /bin/cat /config/ca_certificate.crt > /config/gtm/server.crt
+      /bin/printf "\ninstalling device certificate\n"
+      /bin/cat /config/wildcard.f5.local.crt > /config/httpd/conf/ssl.crt/server.crt
+      /bin/printf "\ninstalling device certificate key\n"
+      /bin/cat /config/wildcard.f5.local.key > /config/httpd/conf/ssl.key/server.key
+      /bin/printf "\nrestarting httpd gtmd big3d\n"
+      /bin/tmsh restart sys service gtmd big3d httpd
+
       /bin/printf "\nsaving TMOS config\n"
       /bin/tmsh save /sys config
 
@@ -64,6 +77,102 @@ write_files:
 
       # cloud-init completed
       /bin/printf "\n*** cloud-init completed at $(date) ***\n"
+
+  - path: /config/ca_certificate.crt
+    permissions: 0644
+    owner: root:root
+    content: |
+      -----BEGIN CERTIFICATE-----
+      MIIDxTCCAq2gAwIBAgIJANopnbzVGf52MA0GCSqGSIb3DQEBDQUAMHkxCzAJBgNV
+      BAYTAlVTMQswCQYDVQQIDAJJTDEVMBMGA1UECgwMTGlwb3dza3kubmV0MRswGQYD
+      VQQDDBJCaWxiby5saXBvd3NreS5uZXQxKTAnBgkqhkiG9w0BCQEWGmFkbWluaXN0
+      cmF0b3JAbGlwb3dza3kubmV0MB4XDTE0MTIxMTIzMTAzNloXDTI0MTIwODIzMTAz
+      NloweTELMAkGA1UEBhMCVVMxCzAJBgNVBAgMAklMMRUwEwYDVQQKDAxMaXBvd3Nr
+      eS5uZXQxGzAZBgNVBAMMEkJpbGJvLmxpcG93c2t5Lm5ldDEpMCcGCSqGSIb3DQEJ
+      ARYaYWRtaW5pc3RyYXRvckBsaXBvd3NreS5uZXQwggEiMA0GCSqGSIb3DQEBAQUA
+      A4IBDwAwggEKAoIBAQCt3mbZ/fQEE2KB0YIzrLloLaTxl39AqbnxpPPVmtHPOOoo
+      uxmdIGdcIx/amiJ+9GhGRbm69Eiul3/VQIk+jkbE8s+mHSXL4H+a5hj4Cyntxyu6
+      5rkYKHGkOh7uDKYZ8mvO54zm/Qq4XjOymrA+DPVc/UsLBoAR1BWtxn8DyJeFmXQs
+      Wf5+ZKcwAAWGV2dVVB5HZkQcDUizs9ZeApUfmnDM4c1b+D6SfKx/Ppx8eQrU0X46
+      5IA7fJrkCTdQz9XQzoiVre9cheZLStQCV6jQSfiDX22TycxamqmV4kSOCy3hiZsu
+      t+NEivu7FUH9+IOYMu+pYO7Kl/E2u/MGtLDJDJHrAgMBAAGjUDBOMB0GA1UdDgQW
+      BBS67gpnQZ2cB/DApSTmlQxEh60FdDAfBgNVHSMEGDAWgBS67gpnQZ2cB/DApSTm
+      lQxEh60FdDAMBgNVHRMEBTADAQH/MA0GCSqGSIb3DQEBDQUAA4IBAQCPCapLQyoJ
+      XHg3x46/OS1bOK8ctLmYJmv2f7WLxqNT4o88Ra3NrPI9IZ+c5e/awQxlcmlMNRv/
+      FOEKxlWcdpo8GX8GYdSOQ1DNnAOD/+v8V1m9ik1fllZVCSdSrdOrmg3WcYEgtm6Q
+      48Eblj2kJPBMfezf675tqn7OZC+vAWFhrKIPbsl5HHRrVz72cJ3Qkz0n0JMj7P5g
+      Cw6UDHhTEkPz9tib2CTyHWiBs+o6HunqQVyqQGfV8lSKspelNW44mjF0SaFPHNud
+      BlOyxGCz1fMif2su5Ml4tIu/CQTVnavqo3lwzIOJOMd7kLgHyGQREJKJJzyW8O51
+      w0nZuaY8BQsC
+      -----END CERTIFICATE-----
+
+  - path: /config/wildcard.f5.local.crt
+    permissions: 0644
+    owner: root:root
+    content: |
+      -----BEGIN CERTIFICATE-----
+      MIIFRjCCBC6gAwIBAgIJANopnbzVGf6zMA0GCSqGSIb3DQEBDQUAMHkxCzAJBgNV
+      BAYTAlVTMQswCQYDVQQIDAJJTDEVMBMGA1UECgwMTGlwb3dza3kubmV0MRswGQYD
+      VQQDDBJCaWxiby5saXBvd3NreS5uZXQxKTAnBgkqhkiG9w0BCQEWGmFkbWluaXN0
+      cmF0b3JAbGlwb3dza3kubmV0MB4XDTE3MDkyNzE3MTk1NloXDTI3MDkyNTE3MTk1
+      NlowdTELMAkGA1UEBhMCVVMxCzAJBgNVBAgMAklMMRMwEQYDVQQHDApDbG91ZCBD
+      aXR5MRAwDgYDVQQKDAdGNSBMYWJzMRMwEQYDVQQDDAoqLmY1LmxvY2FsMR0wGwYJ
+      KoZIhvcNAQkBFg5hZG1pbkBmNS5sb2NhbDCCASIwDQYJKoZIhvcNAQEBBQADggEP
+      ADCCAQoCggEBAPXHNEiiZHa/QNBWK9V34MkaBoY9ZheTM7m3Z36zMFYGkvWal8VU
+      SLt7mohHQjLBNiRfGTXvNe3WVEcjej+vClKXD59KLJpJ90OQEIsdsHnZ5avIjEJR
+      BiEFvRA+RCzFNzK5/9xZt/UnvjUk2mlRv3CoxQ92+P/Rp8MWX8q1ihG6ECSPge9J
+      clGloeyjPuhDAayxGJECiSMfHy4BGVnN89fnQW3XnC+lYe9+o7/zVZxqLj6j6oQh
+      4Py83av6mFg8fi7jVYX7/wMZYlIquaMzxBbeM3iFhYGtZqCDi/rvT6t/a8fxNPN3
+      sbMbaRCvdN5GKi/IDvHAt4WgxOrAUqlv7VkCAwEAAaOCAdMwggHPMAkGA1UdEwQC
+      MAAwLAYJYIZIAYb4QgENBB8WHU9wZW5TU0wgR2VuZXJhdGVkIENlcnRpZmljYXRl
+      MB0GA1UdDgQWBBRqe1r1Sddh9K2RYSrlw6FPWHKuRTAfBgNVHSMEGDAWgBS67gpn
+      QZ2cB/DApSTmlQxEh60FdDCCAUUGA1UdEQSCATwwggE4ggoqLmY1LmxvY2FshwQK
+      AQEKhwQKAQELhwQKAQEMhwQKAQEVhwQKAQoKhwQKAQoLhwQKAQoMhwQKAQoVhwQK
+      AQsKhwQKAQsLhwQKAQsMhwQKAQsVhwQKAW4KhwQKAW4LhwQKAW4MhwQKAW4VhwQK
+      AW8KhwQKAW8LhwQKAW8MhwQKAW8VhwQKARQKhwQKARQLhwQKARQMhwQKARQVhwQK
+      ARUKhwQKARULhwQKARUMhwQKARUVhwQKAXgKhwQKAXgLhwQKAXgMhwQKAXgVhwQK
+      AXkKhwQKAXkLhwQKAXkMhwQKAXkVhwQKARRlhwQKARRmhwQKARRnhwQKARRohwQK
+      ARVlhwQKARVmhwQKARVnhwQKARVohwQKAXhlhwQKAXhmhwQKAXllhwQKAXlmhwQK
+      AXlnhwQKAXloMAsGA1UdDwQEAwIF4DANBgkqhkiG9w0BAQ0FAAOCAQEApDvmM6IM
+      EH2DQG8ZgLutkRgTPsZWtkGr3jJe0l2+spWk+H37oxklTUh4ncOKzjloGw7HIg6O
+      qO3682mGlUMVqt3Eo3uRGm2Udg2sPc+b/9xSXGM4hGc3YJGCb6oeXrzuY3BZWag0
+      wjx5qfdprKwiZ8FvGvtSBv5hF7IfjaT0VDn3IV9xez0h6wVumEjxKLlwskALJ9iq
+      va8TCrnJqAX0Tbj/hbpVMjNZsCM6vqA/OJ2oWWnWQLwaYFoHg/qPlG9Oo4l4dG0e
+      /nKExJTfx0Z2omFLsRuT2j700JTFlNTyv7607VKK0VUQmYHATLMxkbwQhIWOp/yQ
+      parH/9S5AIGEfw==
+      -----END CERTIFICATE-----
+
+  - path: /config/wildcard.f5.local.key
+    permissions: 0644
+    owner: root:root
+    content: |
+      -----BEGIN RSA PRIVATE KEY-----
+      MIIEogIBAAKCAQEA9cc0SKJkdr9A0FYr1XfgyRoGhj1mF5MzubdnfrMwVgaS9ZqX
+      xVRIu3uaiEdCMsE2JF8ZNe817dZURyN6P68KUpcPn0osmkn3Q5AQix2wednlq8iM
+      QlEGIQW9ED5ELMU3Mrn/3Fm39Se+NSTaaVG/cKjFD3b4/9GnwxZfyrWKEboQJI+B
+      70lyUaWh7KM+6EMBrLEYkQKJIx8fLgEZWc3z1+dBbdecL6Vh736jv/NVnGouPqPq
+      hCHg/Lzdq/qYWDx+LuNVhfv/AxliUiq5ozPEFt4zeIWFga1moIOL+u9Pq39rx/E0
+      83exsxtpEK903kYqL8gO8cC3haDE6sBSqW/tWQIDAQABAoIBAD7jLsSbELu1qh7k
+      vaiMWO78Aslccn/7wVN20zt/HBIW8ol3efga3dVjBiJyoUSdXX4m+ytqvtDRc5UU
+      RdZ/slN5pZyrfQgpfuRBu4ntGdfD4ll3IjRhyQCwGDVMyWLvP3VyVD6Mkl5fQfMV
+      L/Gc4jAwbuPLHGFQwu1PD0mt89se0VjjcXLtBAUpoa7cNb7Ka3z3qDOgMAbI99Z7
+      vS4TufQ+4WYWJhCQo37OoL2MP5Vl2ShD6VPpA/WMICDcXMP+QAISKn45ZNw0df6M
+      vysyHDt8RxpmqZy6u4mJSZQV/iu7od4q1rSSXxLvfk94oYyLo7tP+g5xXe23KDo7
+      GaI6ZjUCgYEA/7fmV+74RmsQB33b2PHrV4HdLoP76fbw8oQFQWfUhV0wW8AmhUOi
+      i3ORUpJek7GLwKlcpr7WfsTjTjmsCSZnQf3RF0jQSHPAW/x9sWz/ZuJ46J6YE4+h
+      k7dtF1KXlNbFGudYeaDtZcojdL6M+VxYfsizxT/L5+TKLuSKjIwLLncCgYEA9gyA
+      dYSPx33kxsYSspGBmM27XRAHAjxc2WUX9DDL5E4IWR9bI15Imo6kPpDXrstSeUZ8
+      9l+Zwz3wljmV0A47VfydHJn1+X5OQkzm2YdDn7IHfMrJdln5QYqAKFX48/I9kOwg
+      itiECvKIJ+Akc5Tmx7zRrO9KKLiPiacUuXgmpq8CgYALNcuiRTabF6xvN6RAoXJY
+      tre0h1Ku0gWEDCeS03NsmUY6b3UA2JMym9FeFk6RGPJwcrw+DxWmHwl772lMSWOz
+      b+YPqECBPJnNLodwFMApiXoVcIZoLR6/NAZTRGqiuruPT18Ajf56PN9LCeNyNwsm
+      G7RNzFsrAkuevKQaPzVqRwKBgBVjdtNAZ8M+tWF2HG/7aBmhYLUxTHqsRqH7QL7Q
+      cxjwk5czu5dyfbs5xRtPOgCO2ieCsiA0pUgsnTph3R0N76iE4h93XsOGcEUhLDwi
+      nwVF05LMigDIx3skEAnxl0eVejab4CRRuAC/nohg2qpVek5Ioq12y6qIiKm9pXaN
+      9EYvAoGAE4JLM3XkxAvD0cNnRLlR+lI/QqpCVEkc2Vr96N62a1Qv3Rwl4di2RpnY
+      0tMTd91ueTubd1hMMEGw2X73JPsE7q/7RJ2pxzPoVSmJuMTAg8SB/f+mdK01EpNr
+      YXbroo9XgeM6f/fNvH0rfY3qHUNKmr0yLEhlkm9tuZUPx2BGqAI=
+      -----END RSA PRIVATE KEY-----
 
 runcmd:
   # NOTE: Commands must be non-blocking so send long running commands (polling/waiting for mcpd) to the background
