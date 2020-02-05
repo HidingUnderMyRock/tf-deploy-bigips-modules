@@ -128,6 +128,9 @@ resource "aws_network_interface" "internal-enis" {
 resource "aws_eip" "mgmt-eips" {
     network_interface           = aws_network_interface.mgmt-enis.id
     vpc                         = true
+    tags = {
+        Name                    = "${var.awsNamePrefix}-${var.awsBigipName}-${var.awsSubnetSuffix}-eth0"
+    }
 }
 
 # Create EIPs for external ENIs
@@ -135,6 +138,9 @@ resource "aws_eip" "mgmt-eips" {
 resource "aws_eip" "external-eips" {
     network_interface           = aws_network_interface.external-enis.id
     vpc                         = true
+    tags = {
+        Name                    = "${var.awsNamePrefix}-${var.awsBigipName}-${var.awsSubnetSuffix}-eth1"
+    }
 }
 
 # Create route for virtual addresses in VPC route table
