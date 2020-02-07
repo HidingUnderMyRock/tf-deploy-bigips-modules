@@ -11,3 +11,5 @@ The module ./modules/bigip_standalone/main.tf will create a single BIG-IP in the
 Variables are used within each child module to allow flexible naming, etc.  Check the README for each child module for a description of the variables.
 
 In addition, the script uses cloud-init to download and install both the [F5 Declarative Onboarding](https://clouddocs.f5.com/products/extensions/f5-declarative-onboarding/latest/) and [F5 Cloud Failover](https://clouddocs.f5networks.net/products/extensions/f5-cloud-failover/latest/) extensions on every BIG-IP instance created.
+
+A wildcard device certificate and key are installed on the device, along with a CA certificate to simplify establishing iQuery device trusts for GSLB.
